@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K.H Bank Passbook Demo</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eff7f1;color:#183326}
+header{background:#087b45;color:white;padding:20px;text-align:center}
+main{max-width:600px;margin:auto;padding:15px}
+.card{background:white;padding:18px;margin:14px 0;border-radius:16px;box-shadow:0 2px 9px #0001}
+input,button{width:100%;padding:13px;margin-top:10px;border-radius:9px;font-size:16px}
+input{border:1px solid #bbb}
+button{border:0;background:#087b45;color:white;font-weight:bold}
+.demo{background:#fff3cd;color:#664d03;padding:12px;border-radius:9px}
+#qrcode{display:flex;justify-content:center;margin:18px}
+.entry{padding:12px 0;border-bottom:1px solid #ddd}
+.small{font-size:13px;color:#666}
+</style>
+</head>
+<body>
+<header>
+<h2>K.H Bank Passbook</h2>
+<div>ડેમો ટેસ્ટ વર્ઝન</div>
+</header>
+
+<main>
+<div class="demo">
+⚠️ આ માત્ર ડેમો છે. વાસ્તવિક પેમેન્ટ થતું નથી.
+આ QRથી બેંકમાં પૈસા જમા થતા નથી.
+</div>
+
+<section class="card">
+<h3>દુકાનદારનો ડેમો QR</h3>
+<label>દુકાનનું નામ</label>
+<input id="shop" value="K.H Demo Shop">
+<button onclick="makeQR()">ડેમો QR બનાવો</button>
+<div id="qrcode"></div>
+<div class="small" style="text-align:center">
+આ QRમાં માત્ર ડેમોની ઓળખ છે, પેમેન્ટની માહિતી નથી.
+</div>
+</section>
+
+<section class="card">
+<h3>મહિલાના અવાજનું પરીક્ષણ</h3>
+<button onclick="testVoice()">🔊 ગુજરાતી અવાજ ટેસ્ટ કરો</button>
+<div class="small">
+અવાજ ફોનના બ્રાઉઝર અને ઉપલબ્ધ ગુજરાતી અવાજ પર આધારિત છે.
+</div>
+</section>
+
+<section class="card">
+<h3>ડેમો પાસબુક</h3>
+<p>માત્ર ટેસ્ટ માટેની એન્ટ્રી ઉમેરો.</p>
+<label>રકમ (₹)</label>
+<input id="amount" type="number" min="1" value="500">
+<button onclick="addDemo()">ડેમો એન્ટ્રી ઉમેરો અને અવાજ સાંભળો</button>
+<button onclick="clearDemo()" style="background:#a52a2a">
+ડેમો એન્ટ્રીઓ સાફ કરો
+</button>
+<h3 id="balance">ડેમો બેલેન્સ: ₹0</h3>
+<div id="history"></div>
+</section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let entries = [];
+
+function makeQR(){
+  const shop = $("shop").value.trim() || "Demo Shop";
+  $("qrcode").innerHTML = "";
+  if(typeof QRCode === "undefined"){
+    $("qrcode").textContent =
+      "QR લાઇબ્રેરી લોડ થઈ નથી. ઇન્ટરનેટ તપાસો.";
+    return;
+  }
+  new QRCode($("qrcode"),{
+    text:"KH-BANK-PASSBOOK-DEMO|SHOP:"+shop,
+    width:200,height:200
+  });
+}
+
+function speak(text){
+  if(!("speechSynthesis" in window)){
+    alert("આ બ્રાઉઝરમાં અવાજની સુવિધા ઉપલબ્ધ નથી.");
+    return;
+  }
+  speechSynthesis.cancel();
+  const msg = new SpeechSynthesisUtterance(text);
+  msg.lang = "gu-IN";
+  msg.rate = 0.85;
+  const voices = speechSynthesis.getVoices();
+  const gujarati = voices.find(v =>
+    v.lang.toLowerCase().startsWith("gu"));
+  const hindi = voices.find(v =>
+    v.lang.toLowerCase().startsWith("hi"));
+  if(gujarati) msg.voice = gujarati;
+  else if(hindi) {
+    msg.voice = hindi;
+    msg.lang = "hi-IN";
+  }
+  speechSynthesis.speak(msg);
+}
+
+function testVoice(){
+  speak("આ K H બેંક પાસબુક એપનો ડેમો અવાજ છે. આ વાસ્તવિક બેંક પેમેન્ટ નથી.");
+}
+
+function addDemo(){
+  const amount = Number($("amount").value);
+  if(!Number.isFinite(amount) || amount <= 0){
+    alert("યોગ્ય રકમ દાખલ કરો.");
+    return;
+  }
+  entries.unshift({
+    amount,
+    time:new Date().toLocaleString("gu-IN"),
+    note:"ડેમો એન્ટ્રી — વાસ્તવિક પેમેન્ટ નથી"
+  });
+  render();
+  speak("ડેમોમાં "+amount+" રૂપિયા જમા થયા. આ વાસ્તવિક પેમેન્ટ નથી.");
+}
+
+function render(){
+  $("balance").textContent =
+    "ડેમો બેલેન્સ: ₹"+entries.reduce((s,e)=>s+e.amount,0);
+  $("history").innerHTML = "";
+  entries.forEach(e=>{
+    const row = document.createElement("div");
+    row.className = "entry";
+    const amount = document.createElement("strong");
+    amount.textContent = "₹"+e.amount+" — ડેમો";
+    const time = document.createElement("div");
+    time.textContent = e.time;
+    const note = document.createElement("div");
+    note.className = "small";
+    note.textContent = e.note;
+    row.append(amount,time,note);
+    $("history").appendChild(row);
+  });
+}
+
+function clearDemo(){
+  entries = [];
+  render();
+}
+
+makeQR();
+</script>
+</body>
+</html>
